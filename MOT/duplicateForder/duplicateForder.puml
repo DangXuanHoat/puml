@@ -1,0 +1,81 @@
+@startuml duplicate
+actor "user: User" as user
+control "sv: Server3001" as sv
+database "database: mysql" as db
+
+note over user: User  call duplicate
+activate user
+
+user -> sv: Call duplicate
+activate sv
+note right sv
+  - forderId
+  - tenantId
+  - name
+end note
+sv->sv: forderService
+activate sv
+sv->db: get forder entity with layout (findByIdWithLayouts)
+activate db
+db-->sv: forder with Layout (folderEn)
+deactivate db
+deactivate sv
+
+sv->db:checkName
+activate db
+note right db 
+  - tenantId
+  - name 
+  - folderEn.parentId
+end note
+db--> sv: checkName
+deactivate db
+
+alt checkName
+else is Null 
+sv-->user: error forder name exist
+end group
+
+sv->sv: forderService
+activate sv
+sv->db: find descendants by foderEn (findDescendants)
+activate db
+db-->sv: array folders
+deactivate db
+deactivate sv
+
+alt forders
+else is Null or length = 0
+sv-->user: error not found with id
+end group
+
+sv->sv: sort folders by id
+
+alt transaction
+sv->sv:  create var
+note right sv
+- fRepo
+- doneFolder: FolderEntity[] = [] 
+- parentObj = null
+- folderShare: FolderViewer[] = []
+end note
+loop folder in folders
+  alt  doneFolder
+  else  not empty 
+  
+  else isEmpty
+  sv->db: find folder by ID include 'layout' and views
+  activate db
+  db-->sv: resutl
+  deactivate db
+  end group   
+end group
+sv->db: save folder share
+activate db
+db-->sv: OK
+deactivate db
+sv--> user: folders
+else roll back
+sv--> user: erro  r
+end group
+@enduml

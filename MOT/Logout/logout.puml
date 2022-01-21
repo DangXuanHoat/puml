@@ -1,0 +1,51 @@
+@startuml add
+actor "user: User" as user
+control "sv: Server3001" as sv
+participant "Service handle token" as handle
+database "database: redis" as redis
+participant "zeroMQ" as zeroMQ
+
+note over user: User click logout
+activate user
+
+user -> sv: Call logout
+activate sv
+
+sv->handle: Verify token
+activate handle
+alt Catch Exception
+  else pass
+  handle -> redis: Del key token
+  
+  activate handle
+  activate redis
+  redis -->handle: ok
+  deactivate redis
+  handle -> sv: continue
+  deactivate handle
+  
+  else excep
+  sv --> user: Error
+end group
+
+
+sv->handle: Verify refreshtoken
+activate handle
+alt Catch Exception
+  else pass
+  handle -> redis: Del key refresh Token
+  
+  activate handle
+  activate redis
+  redis -->handle: ok
+  deactivate redis
+  handle -> sv: continue
+  deactivate handle
+  
+  else excep
+  sv --> user: Error
+end group
+deactivate handle
+sv-->zeroMQ: push noitification user leave
+sv-->user: user id
+@enduml

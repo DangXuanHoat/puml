@@ -1,0 +1,71 @@
+@startuml add
+
+actor "user: User" as user
+control "sv: Server3005" as sv
+database "database: MySQL" as db
+
+activate user
+
+note over user: choose file
+user->sv: Call event writedata
+activate sv
+note right sv 
+  - file_name
+  - fnid
+  - layout
+  - data
+end note  
+alt check params
+else file_name null && fnid null
+sv-->user: fine_name or fnid required
+else data null && fnid null
+sv--> user: no data
+else layout null
+sv-->user: no layout
+end group
+sv->sv: check dir
+activate sv
+alt access dir error
+sv->sv: mkdir
+end group
+deactivate sv
+
+alt fnid
+else found
+sv->db: find node
+activate db
+db-->sv: node
+deactivate db
+else not found
+sv->db: findOrCreate node
+activate db
+db-->sv: node
+deactivate db
+end group
+
+note over sv: [fileNode, created] = node
+alt Exception
+else done
+  alt created is false
+    alt data is false
+      sv->sv: remove file if exits
+      sv->db: Update fileNode
+      activate db
+      deactivate db
+    else false
+      sv->sv: rename file path
+      sv->db: Update fileNode
+      activate db
+      sv-->user: Succsess with fnid
+      deactivate db
+    end group
+  end group
+alt fileNode.file_type_id = 5 
+else other
+end group
+
+else error
+sv--> user: error
+end group
+
+@enduml

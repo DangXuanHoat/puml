@@ -1,0 +1,77 @@
+@startuml add
+
+actor "user: User" as user
+control "sv: Server3001" as sv
+database "database: MySQL" as db
+
+activate user
+activate sv
+
+note over user: Request get detail forder
+
+user->sv: Call detail forder
+note right sv
+- forderId
+- tenantId
+end note
+sv -> sv: Check params
+alt folderId is null
+
+  sv->db: Get root forder
+  activate db
+  db --> sv: root forder
+  deactivate db
+else folderId found
+  sv->db: Get forder by forder ID
+  activate db
+  db --> sv: root forder
+  deactivate db
+  deactivate sv
+  end group
+  sv-->user: Detail forder
+activate sv
+
+note over user: Request get create layout
+
+user->sv: Call create layout
+note right sv
+- forderId
+- tenantId
+- name
+end note
+sv -> sv: Check params
+
+alt folderId == null || name == null
+  sv-->user: must not be empty
+else found
+  sv->db: Get layout exits in forder by name + forderID
+  activate db
+  db --> sv: layout
+  deactivate db
+
+  alt found layout
+  sv-->user: Duplicate layout
+  end group
+end group
+sv->db: get forder by forderId + tenantId
+activate db
+  db --> sv: forder
+deactivate db
+alt  forder not found
+  sv-->user: error not found forder
+  end group
+sv->sv: init layout
+
+note over sv: Create transaction
+sv->db: save layout
+activate db
+sv->db: save viewerFolShares
+db --> sv: result transaction
+deactivate db
+alt result transaction no error
+sv-->user: layout id
+else exception
+sv-->user: throw error
+end group
+
+@enduml

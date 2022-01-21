@@ -1,0 +1,57 @@
+@startuml add
+
+actor "user: User" as user
+control "sv: Server3001" as sv
+database "database: MySQL" as db
+
+activate user
+activate sv
+
+note over user: Request get detail forder
+
+user->sv: Call event layout_manage_rpc with method shareLayout
+note right sv
+  - layoutId
+  - shareList
+end note
+alt layoutID is empty || shareList is empty
+sv-->user: Error undefine
+end group
+
+sv->db: Get layout obj
+activate db
+db-->sv: layout obj
+deactivate db
+sv->sv: push shareList in layou.views
+
+sv->db: Get folder by id
+activate db
+db-->sv: folder
+deactivate db
+
+sv->db: Get accesstor of forder
+activate db
+db-->sv: accesstor
+deactivate db
+
+sv->sv: init folderShare: FolderViewer[] = []
+
+sv->sv: push data folderShare
+
+alt transaction
+sv->db: save folderShare
+activate db
+db-->sv: folderShare
+deactivate db
+
+sv->db: save layout
+activate db
+db-->sv: layout
+deactivate db
+sv-->user: OK
+else error
+db->db: ROLLBACK
+sv->user: error
+end group
+
+@enduml

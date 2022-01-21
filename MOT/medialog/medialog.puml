@@ -1,0 +1,73 @@
+@startuml duplicate
+actor "user: User" as user
+control "sv: Server3001" as sv
+participant "folder Service" as service
+database "database: mysql" as db
+
+note over user: User get log
+activate user
+user->sv: Call get Log
+activate sv
+note right sv
+- event: layout_manage_rpc
+- method: folderLogDetail
+end note
+sv->sv: valid forder
+alt folder
+else not found
+  sv->sv: call service
+  activate sv
+  sv->service: getListRootLog(tenantId)
+  activate service
+  service->db: Get log in db where tenantId
+  activate db
+  db-->service: file_log
+  deactivate db
+  service-->sv: file_log
+  deactivate service
+  deactivate db
+  sv->sv: result = find name in file_log
+  sv-->user: result
+  deactivate sv
+else found
+  alt folder
+  else forder include '_'
+    sv->sv: call service
+    activate sv
+    sv->service: getListFileInLog(folder)
+    activate service
+    service->db: Get log in db where folderName: folder
+    activate db
+    db-->service: file_log
+    deactivate db
+    service-->sv: file_log
+    deactivate service
+    deactivate db
+    sv->sv: result = decor file_log
+    sv-->user: result
+    deactivate sv
+  else folder start with number
+    alt start
+    else not number
+    sv-->user: error
+    else number
+    sv->sv: call service
+    activate sv
+    sv->service: getListInDayLog(start, end, tenantId)
+    activate service
+    service->db: Get log in db from start to end by tenant
+    activate db
+    db-->service: file_log
+    deactivate db
+    service-->sv: file_log
+    deactivate service
+    deactivate db
+    sv->sv: result = find name in file_log
+    sv-->user: result
+    deactivate sv
+    end group
+  end group
+end group
+deactivate sv
+deactivate user
+@enduml
