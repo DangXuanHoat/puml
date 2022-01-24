@@ -3,6 +3,7 @@
 actor "user: User" as user
 control "sv: Server3005" as sv
 database "database: MySQL" as db
+database "database: mongoDB" as mongoDB
 
 activate user
 
@@ -60,12 +61,29 @@ else done
       deactivate db
     end group
   end group
-alt fileNode.file_type_id = 5 
+
+  sv->sv: Get LockDoc model
+alt !created 
+  sv->mongoDB: get LockDoc
+  activate mongoDB
+  mongoDB--> sv: LockDoc as locks
+  deactivate mongoDB
 else other
 end group
+sv->sv: lockRes = decorator lockdocs
+alt lockRes undefine
+sv--> user: error code LOCKED(4602)
+else found
+alt Exception
+sv->sv: writeFile to server
 
+sv--> user: file write success with fnid
+else catch
+sv--> user: error file write
+end group
 else error
 sv--> user: error
 end group
-
+deactivate user
+deactivate sv
 @enduml

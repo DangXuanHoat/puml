@@ -1,6 +1,7 @@
 @startuml duplicate
 actor "user: User" as user
 control "sv: Server3001" as sv
+control "sv: Server3001" as manger
 database "database: mysql" as db
 
 note over user: User  call duplicate
@@ -21,7 +22,7 @@ db-->sv: forder with Layout (folderEn)
 deactivate db
 deactivate sv
 
-sv->db:checkName
+sv->db: Find layout name
 activate db
 note right db 
   - tenantId
@@ -62,15 +63,35 @@ end note
 loop folder in folders
   alt  doneFolder
   else  not empty 
-  
+  sv->sv: get parentObj in doneFolder
+
   else isEmpty
   sv->db: find folder by ID include 'layout' and views
   activate db
-  db-->sv: resutl
+  db-->sv: parentObj = resutl
   deactivate db
   end group   
+
+  sv->db: find folder by ID include 'layout' and views
+  activate db
+  db-->sv: f:FolderEntity
+  deactivate db
+  sv->sv: Create fld save
+  sv->db: save fld
+  activate db
+  db-->sv: save
+  deactivate db
+
+  sv->manger: Save duplicate layout
+  activate manger
+  db-->sv: layoutSave
+  deactivate manger
+  sv->sv: push f + fld.id to doneFolder
+
+  sv->sv: Get all folder share viewer from f (viewerShares)
+  sv->sv: push viewerShares to folderShare
 end group
-sv->db: save folder share
+sv->db: save folderShare
 activate db
 db-->sv: OK
 deactivate db

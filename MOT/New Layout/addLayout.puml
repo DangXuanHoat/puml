@@ -63,15 +63,16 @@ alt  forder not found
 sv->sv: init layout
 
 note over sv: Create transaction
+
+alt transaction
+else done
 sv->db: save layout
 activate db
 sv->db: save viewerFolShares
 db --> sv: result transaction
 deactivate db
-alt result transaction no error
-sv-->user: layout id
-else exception
+else rollback
 sv-->user: throw error
 end group
-
+sv-->user: layout id
 @enduml
